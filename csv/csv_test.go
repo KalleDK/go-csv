@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -444,14 +445,6 @@ func TestUnmarshal(t *testing.T) {
 	}
 }
 
-type stubioreader struct {
-	Value string
-}
-
-func (r *stubioreader) Read(p []byte) (n int, err error) {
-	return 0, io.EOF
-}
-
 func TestNewDecoder(t *testing.T) {
 	type args struct {
 		reader  io.Reader
@@ -466,7 +459,7 @@ func TestNewDecoder(t *testing.T) {
 		{
 			name: "InvalidReaderEOF",
 			args: args{
-				reader:  &stubioreader{"flaf"},
+				reader:  strings.NewReader(""),
 				headers: nil,
 			},
 			want:    nil,
