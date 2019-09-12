@@ -35,3 +35,4 @@ func main() {
 	// [{Bob 12} {Sally 13} {Alice 10}]
 }
 ```
+Try on go playground https://play.golang.org/p/OS6P1e_Gs3s
