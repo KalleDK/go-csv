@@ -1,11 +1,11 @@
 package csv
 
 import (
+	"encoding"
+	"encoding/json"
+	"fmt"
 	"reflect"
 	"strconv"
-	"encoding/json"
-	"encoding"
-	"fmt"
 )
 
 var textUnmarshalerType = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()
@@ -13,6 +13,10 @@ var textUnmarshalerType = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem(
 var textMarshalerType = reflect.TypeOf((*encoding.TextMarshaler)(nil)).Elem()
 
 var unmarshalFuncType = reflect.TypeOf(UnmarshalFunc(nil))
+
+var errorType = reflect.TypeOf((*error)(nil)).Elem()
+
+var bytesliceType = reflect.TypeOf([]byte{})
 
 func nativeUnmarshalQuoted(v interface{}, data []byte) error {
 	// byte -> string -> quote -> byte
@@ -26,24 +30,49 @@ func nativeUnmarshalUnquoted(v interface{}, data []byte) error {
 
 func nativeUnmarshal(t reflect.Type) UnmarshalFunc {
 	if reflect.PtrTo(t).Implements(textUnmarshalerType) {
-		return nativeUnmarshalQuoted;
+		return nativeUnmarshalQuoted
 	}
 
 	if t.Kind() == reflect.String {
-		return nativeUnmarshalQuoted;
+		return nativeUnmarshalQuoted
 	}
 
-	return nativeUnmarshalUnquoted;
+	return nativeUnmarshalUnquoted
 }
 
-func methodUnmarshal(method reflect.Value) UnmarshalFunc {
+func verifyMethodSignature(methodType reflect.Type, fieldType reflect.Type) error {
+
+	argsIn := []reflect.Type{
+		reflect.PtrTo(fieldType), // First args should be a pointer to the type we want to unmarshal
+		bytesliceType,            // Second args should be []byte
+	}
+
+	argsOut := []reflect.Type{
+		errorType, // Only return an error
+	}
+
+	wantedMethodType := reflect.FuncOf(argsIn, argsOut, false)
+
+	if wantedMethodType != methodType {
+		return fmt.Errorf("invalid method signature %v want %v", methodType, wantedMethodType)
+	}
+
+	return nil
+}
+
+func makeUnmarshalMethod(method reflect.Value) UnmarshalFunc {
 	return func(v interface{}, data []byte) error {
+
+		// Prepare args
 		args := []reflect.Value{
 			reflect.ValueOf(v),
 			reflect.ValueOf(data),
 		}
+
+		// Execute unmarshal
 		responses := method.Call(args)
 
+		// Forward error if any
 		err := responses[0].Interface()
 		if err != nil {
 			return err.(error)
@@ -53,43 +82,36 @@ func methodUnmarshal(method reflect.Value) UnmarshalFunc {
 	}
 }
 
-
-
 type structType struct {
 	reflect.Type
 }
 
-func (s structType) getUnmarshalMethod(tags tags) (UnmarshalFunc, error) {
-	if tags.Unmarshal == "" {
-		return nativeUnmarshal(s.FieldByIndex(tags.index).Type), nil
+func (s structType) getUnmarshalMethod(field fieldInfo) (UnmarshalFunc, error) {
+
+	if field.Unmarshal == "" {
+		return nativeUnmarshal(field.Type), nil
+	}
+
+	// Verify that the method is not a value method
+	if invalidMethod, foundInvalid := s.Type.MethodByName(field.Unmarshal); foundInvalid {
+		return nil, fmt.Errorf("invalid method %v can't be value method", invalidMethod)
 	}
 
 	// Create a zero value pointer (no reason to allocate object)
 	obj := reflect.Zero(reflect.PtrTo(s.Type))
-	
+
 	// Get method on the zero object
-	method := obj.MethodByName(tags.Unmarshal)
-	
-	
+	method := obj.MethodByName(field.Unmarshal)
+
 	// Verify the method existed
 	if !method.IsValid() {
-		return nil, fmt.Errorf("invalid method name %v", tags.Unmarshal)
+		return nil, fmt.Errorf("invalid method name %v", field.Unmarshal)
 	}
 
-	// Verify signature
-	if 	!(method.Type().NumIn() == 2) ||
-		!(method.Type().In(0) == reflect.PtrTo(s.FieldByIndex(tags.index).Type)) ||
-		!(method.Type().In(1) == reflect.TypeOf([]byte{})) ||
-		!(method.Type().NumOut() == 1) ||
-		!(method.Type().Out(0) == reflect.TypeOf((*error)(nil)).Elem()) {
-		return nil, fmt.Errorf("invalid method signature 1 %v", tags.Unmarshal)
+	// Verify method
+	if err := verifyMethodSignature(method.Type(), field.Type); err != nil {
+		return nil, err
 	}
-	
-	/*
-	if !method.Type().AssignableTo(unmarshalFuncType) {
-		return nil, fmt.Errorf("invalid method signature %v", tags.Unmarshal)
-	}
-	*/
-	
-	return methodUnmarshal(method), nil
+
+	return makeUnmarshalMethod(method), nil
 }

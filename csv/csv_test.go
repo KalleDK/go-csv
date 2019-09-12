@@ -26,6 +26,27 @@ var SimpleExpected = &[]Simple{
 
 //#endregion
 
+//region SimpleCustom Test
+
+type Name string
+
+type SimpleCustom struct {
+	Name Name
+	Age  int
+}
+
+var SimpleCustomHeaders = []string{"Name", "Age"}
+
+var SimpleCustomCSV = []byte(`"Bob", 12
+"Alice", 13`)
+
+var SimpleCustomExpected = &[]SimpleCustom{
+	{"Bob", 12},
+	{"Alice", 13},
+}
+
+//#endregion
+
 //region TextUnmarshaler Test
 
 type Age int
@@ -176,6 +197,26 @@ var ErrorCustomUnmarshalExpected = &[]ErrorCustomUnmarshal{}
 
 //#endregion
 
+//region ErrorCustomUnmarshalNonPtr Test
+
+type ErrorCustomUnmarshalNonPtr struct {
+	Name string `csv:",UnmarshalName"`
+	Age  int
+}
+
+func (c ErrorCustomUnmarshalNonPtr) UnmarshalName(name *string, text []byte) error {
+	return fmt.Errorf("ErrorCustomUnmarshalNonPtr Name invalid")
+}
+
+var ErrorCustomUnmarshalNonPtrHeaders = []string{"Name", "Age"}
+
+var ErrorCustomUnmarshalNonPtrCSV = []byte(`"Bob",12
+"Alice",13`)
+
+var ErrorCustomUnmarshalNonPtrExpected = &[]ErrorCustomUnmarshalNonPtr{}
+
+//#endregion
+
 //region OptionalField
 
 type OptionalField struct {
@@ -245,6 +286,16 @@ func TestUnmarshal(t *testing.T) {
 				data:    SimpleCSV,
 			},
 			want:    SimpleExpected,
+			wantErr: false,
+		},
+		{
+			name: "SimpleCustom",
+			args: args{
+				v:       &[]SimpleCustom{},
+				headers: SimpleCustomHeaders,
+				data:    SimpleCustomCSV,
+			},
+			want:    SimpleCustomExpected,
 			wantErr: false,
 		},
 		{
@@ -325,6 +376,16 @@ func TestUnmarshal(t *testing.T) {
 				data:    ErrorCustomUnmarshalCSV,
 			},
 			want:    ErrorCustomUnmarshalExpected,
+			wantErr: true,
+		},
+		{
+			name: "ErrorCustomUnmarshalNonPtr",
+			args: args{
+				v:       &[]ErrorCustomUnmarshalNonPtr{},
+				headers: ErrorCustomUnmarshalNonPtrHeaders,
+				data:    ErrorCustomUnmarshalNonPtrCSV,
+			},
+			want:    ErrorCustomUnmarshalNonPtrExpected,
 			wantErr: true,
 		},
 		{

@@ -6,9 +6,8 @@ import (
 
 type recordDecoder struct {
 	decoders []*fieldDecoder
-	end int
+	end      int
 }
-
 
 func newRecordDecoder(structType structType, headers headerMap) (*recordDecoder, error) {
 
@@ -16,23 +15,23 @@ func newRecordDecoder(structType structType, headers headerMap) (*recordDecoder,
 	last := 0
 
 	for i := 0; i < structType.NumField(); i++ {
-	
-		tags := getTags(structType.Field(i))
 
-		csvIndex, found := headers[tags.Name]
-		
+		field := getFieldInfo(structType.Field(i))
+
+		csvIndex, found := headers[field.Name]
+
 		if !found {
-			if tags.IsOptional {
-				continue	
+			if field.IsOptional {
+				continue
 			}
-			return nil, fmt.Errorf("required field i missing in header %v", tags.Name)
+			return nil, fmt.Errorf("required field i missing in header %v", field.Name)
 		}
 
-		if (csvIndex > last) {
+		if csvIndex > last {
 			last = csvIndex
 		}
 
-		unmarshal, err := structType.getUnmarshalMethod(tags)
+		unmarshal, err := structType.getUnmarshalMethod(field)
 		if err != nil {
 			return nil, err
 		}
@@ -41,7 +40,7 @@ func newRecordDecoder(structType structType, headers headerMap) (*recordDecoder,
 			decoders,
 			&fieldDecoder{
 				recordIndex: csvIndex,
-				structIndex: tags.index,
+				structIndex: field.index,
 				unmarshal:   unmarshal,
 			},
 		)
@@ -53,10 +52,10 @@ func newRecordDecoder(structType structType, headers headerMap) (*recordDecoder,
 
 func (decoder recordDecoder) Unmarshal(object structRecord, record csvRecord) error {
 
-	if (decoder.end >= len(record)) {
+	if decoder.end >= len(record) {
 		return fmt.Errorf("not enough columns in record")
 	}
-		
+
 	for _, fieldDecoder := range decoder.decoders {
 		if err := fieldDecoder.decode(object, record); err != nil {
 			return err
