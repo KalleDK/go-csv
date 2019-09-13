@@ -31,7 +31,7 @@ func newRecordDecoder(structType structType, headers headerMap) (*recordDecoder,
 			last = csvIndex
 		}
 
-		unmarshal, err := structType.getUnmarshalMethod(field)
+		unmarshaller, err := structType.getUnmarshaler(field)
 		if err != nil {
 			return nil, err
 		}
@@ -39,9 +39,9 @@ func newRecordDecoder(structType structType, headers headerMap) (*recordDecoder,
 		decoders = append(
 			decoders,
 			&fieldDecoder{
-				recordIndex: csvIndex,
-				structIndex: field.index,
-				unmarshal:   unmarshal,
+				recordIndex:  csvIndex,
+				structIndex:  field.index,
+				unmarshaller: unmarshaller,
 			},
 		)
 

@@ -19,22 +19,29 @@ func newValue(v interface{}) structRecord {
 	return structRecord(newValuePtr(v).Elem())
 }
 
-func unmarshalStubCreator(validObject interface{}) func(int) UnmarshalFunc {
-	return func(idx int) UnmarshalFunc {
+type FakeUnmarshaler struct {
+	validField []byte
+	validPtr   uintptr
+}
+
+func (f FakeUnmarshaler) Unmarshal(v interface{}, text []byte) error {
+	vPtr := reflect.ValueOf(v).Elem().UnsafeAddr()
+	if f.validPtr != vPtr {
+		return fmt.Errorf("invalid object %v %v", f.validPtr, vPtr)
+	}
+
+	if !reflect.DeepEqual(text, f.validField) {
+		return fmt.Errorf("invalid record %v", text)
+	}
+
+	return nil
+}
+
+func unmarshalStubCreator(validObject interface{}) func(int) objectUnmarshaler {
+	return func(idx int) objectUnmarshaler {
 		validField := []byte(validRecord[idx])
-		return func(v interface{}, data []byte) error {
-			validPtr := reflect.ValueOf(validObject).Elem().UnsafeAddr()
-			vPtr := reflect.ValueOf(v).Elem().UnsafeAddr()
-			if validPtr != vPtr {
-				return fmt.Errorf("invalid object %v %v", validPtr, vPtr)
-			}
-
-			if !reflect.DeepEqual(data, validField) {
-				return fmt.Errorf("invalid record %v", data)
-			}
-
-			return nil
-		}
+		validPtr := reflect.ValueOf(validObject).Elem().UnsafeAddr()
+		return FakeUnmarshaler{validField: validField, validPtr: validPtr}
 	}
 
 }
@@ -62,14 +69,14 @@ func Test_unmarshal(t *testing.T) {
 			args: args{
 				decoders: []*fieldDecoder{
 					&fieldDecoder{
-						recordIndex: 0,
-						structIndex: []int{0},
-						unmarshal:   unmarshalFirstFieldStub(0),
+						recordIndex:  0,
+						structIndex:  []int{0},
+						unmarshaller: unmarshalFirstFieldStub(0),
 					},
 					&fieldDecoder{
-						recordIndex: 1,
-						structIndex: []int{1},
-						unmarshal:   unmarshalSecondFieldStub(1),
+						recordIndex:  1,
+						structIndex:  []int{1},
+						unmarshaller: unmarshalSecondFieldStub(1),
 					},
 				},
 				object: newValue(&validObject),
@@ -82,14 +89,14 @@ func Test_unmarshal(t *testing.T) {
 			args: args{
 				decoders: []*fieldDecoder{
 					&fieldDecoder{
-						recordIndex: 0,
-						structIndex: []int{0},
-						unmarshal:   unmarshalFirstFieldStub(1),
+						recordIndex:  0,
+						structIndex:  []int{0},
+						unmarshaller: unmarshalFirstFieldStub(1),
 					},
 					&fieldDecoder{
-						recordIndex: 1,
-						structIndex: []int{1},
-						unmarshal:   unmarshalSecondFieldStub(1),
+						recordIndex:  1,
+						structIndex:  []int{1},
+						unmarshaller: unmarshalSecondFieldStub(1),
 					},
 				},
 				object: newValue(&validObject),
@@ -124,14 +131,14 @@ func TestStructDecoder_Unmarshal(t *testing.T) {
 			decoder: recordDecoder{
 				decoders: []*fieldDecoder{
 					&fieldDecoder{
-						recordIndex: 0,
-						structIndex: []int{0},
-						unmarshal:   unmarshalFirstFieldStub(0),
+						recordIndex:  0,
+						structIndex:  []int{0},
+						unmarshaller: unmarshalFirstFieldStub(0),
 					},
 					&fieldDecoder{
-						recordIndex: 1,
-						structIndex: []int{1},
-						unmarshal:   unmarshalSecondFieldStub(1),
+						recordIndex:  1,
+						structIndex:  []int{1},
+						unmarshaller: unmarshalSecondFieldStub(1),
 					},
 				},
 			},
@@ -146,14 +153,14 @@ func TestStructDecoder_Unmarshal(t *testing.T) {
 			decoder: recordDecoder{
 				decoders: []*fieldDecoder{
 					&fieldDecoder{
-						recordIndex: 0,
-						structIndex: []int{0},
-						unmarshal:   unmarshalFirstFieldStub(0),
+						recordIndex:  0,
+						structIndex:  []int{0},
+						unmarshaller: unmarshalFirstFieldStub(0),
 					},
 					&fieldDecoder{
-						recordIndex: 1,
-						structIndex: []int{1},
-						unmarshal:   unmarshalSecondFieldStub(0),
+						recordIndex:  1,
+						structIndex:  []int{1},
+						unmarshaller: unmarshalSecondFieldStub(0),
 					},
 				},
 			},
