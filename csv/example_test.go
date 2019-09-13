@@ -7,10 +7,9 @@ import (
 	"github.com/KalleDK/go-csv/csv"
 )
 
-type SimpleRecord struct
-{
+type SimpleRecord struct {
 	Name string
-	Age int
+	Age  int
 }
 
 var simplecsv = []byte(`"Name","Age"
@@ -19,15 +18,14 @@ var simplecsv = []byte(`"Name","Age"
 "Alice","10"
 `)
 
-
 func ExampleUnmarshal() {
 	var records []SimpleRecord
-	
+
 	if err := csv.Unmarshal(&records, nil, simplecsv); err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println(records)	
+	fmt.Println(records)
 
 	// Output:
 	// [{Bob 12} {Sally 13} {Alice 10}]

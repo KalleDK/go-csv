@@ -8,9 +8,9 @@ import (
 )
 
 type CustomRecord struct {
-	SimpleNumber   int
-	SimpleString   string
-	CustomMethod   bool `csv:",DecodeBool"`  // Telling the decoder to use the method DecodeBool to decode this bool
+	SimpleNumber int
+	SimpleString string
+	CustomMethod bool `csv:",DecodeBool"` // Telling the decoder to use the method DecodeBool to decode this bool
 }
 
 func (r *CustomRecord) DecodeBool(v *bool, text []byte) error {

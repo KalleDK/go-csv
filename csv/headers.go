@@ -16,7 +16,7 @@ func (headers headerList) ToMap() headerMap {
 
 func getHeaders(r csvReader, headers headerList) (headerMap, error) {
 
-	if (r == nil) {
+	if r == nil {
 		return nil, fmt.Errorf("reader can't be nil")
 	}
 

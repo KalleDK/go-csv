@@ -1,10 +1,10 @@
 package csv
 
 import (
+	"fmt"
 	"io"
 	"reflect"
 	"strings"
-	"fmt"
 )
 
 /*
@@ -14,7 +14,7 @@ type Options struct {
 	// Headers is for mapping the Struct's fieldnames to columns
 	// If Headers are nil, the first record is expected to be headers
 	Headers []string
-	
+
 	// Comma is the field delimiter.
 	// It is set to comma (',') by NewDecoder.
 	// Comma must be a valid rune and must not be \r, \n,
@@ -39,7 +39,7 @@ type Options struct {
 	FieldsPerRecord int
 
 	// If LazyQuotes is true, a quote may appear in an unquoted field and a
-    // non-doubled quote may appear in a quoted field.
+	// non-doubled quote may appear in a quoted field.
 	LazyQuotes bool
 
 	// If TrimLeadingSpace is true, leading white space in a field is ignored.
@@ -97,21 +97,21 @@ The decoder introduces its own buffering and may read data from r beyond the CSV
 If headers is nil the headers are expected to be in the first csv record
 */
 func NewDecoder(r io.Reader, options *Options) (*Decoder, error) {
-	if (r == nil) {
+	if r == nil {
 		return nil, fmt.Errorf("reader can't be nil")
 	}
 
 	csvreader := newReader(r, options)
 
 	var headerlist []string
-	if (options != nil) {
+	if options != nil {
 		headerlist = options.Headers
 	}
-	
+
 	headermap, err := getHeaders(csvreader, headerlist)
 	if err != nil {
 		return nil, err
-	} 
+	}
 
 	return &Decoder{headermap, csvreader}, nil
 }

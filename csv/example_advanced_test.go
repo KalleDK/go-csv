@@ -9,19 +9,17 @@ import (
 
 type CSVField bool
 
-
-
 func (f *CSVField) UnmarshalText(text []byte) error {
 	*f = (CSVField)(string(text) == "true")
 	return nil
 }
 
 type CSVRecord struct {
-	SimpleNumber   int
-	SimpleString   string
-	CustomMethod   bool `csv:",DecodeThird"`
-	TextUnmarshal  bool
-	OtherName	   string `csv:"RealName"`
+	SimpleNumber  int
+	SimpleString  string
+	CustomMethod  bool `csv:",DecodeThird"`
+	TextUnmarshal bool
+	OtherName     string `csv:"RealName"`
 }
 
 func (r *CSVRecord) DecodeThird(v *bool, text []byte) error {

@@ -15,7 +15,7 @@ type csvRawReader struct {
 
 func newReader(r io.Reader, options *Options) *csvRawReader {
 	reader := &csvRawReader{csv.NewReader(r)}
-	if (options != nil) {
+	if options != nil {
 		if options.Comma != 0 {
 			reader.Comma = options.Comma
 		}
@@ -24,7 +24,7 @@ func newReader(r io.Reader, options *Options) *csvRawReader {
 		}
 		if options.FieldsPerRecord != 0 {
 			reader.FieldsPerRecord = options.FieldsPerRecord
-		}	
+		}
 		reader.LazyQuotes = options.LazyQuotes
 		reader.TrimLeadingSpace = options.TrimLeadingSpace
 	}
