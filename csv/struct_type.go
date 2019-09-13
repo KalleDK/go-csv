@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"strconv"
 )
 
 var textUnmarshalerType = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()
@@ -19,8 +18,17 @@ var errorType = reflect.TypeOf((*error)(nil)).Elem()
 var bytesliceType = reflect.TypeOf([]byte{})
 
 func nativeUnmarshalQuoted(v interface{}, data []byte) error {
-	// byte -> string -> quote -> byte
-	raw := []byte(strconv.Quote(string(data)))
+	/*
+		Can't get an error from a string, unless an encoder is used
+
+		String values encode as JSON strings coerced to valid UTF-8, replacing invalid bytes with the Unicode
+		replacement rune. So that the JSON will be safe to embed inside HTML <script> tags, the string is encoded using
+		HTMLEscape, which replaces "<", ">", "&", U+2028, and U+2029 are escaped to "\u003c","\u003e", "\u0026",
+		"\u2028", and "\u2029". This replacement can be disabled when using an Encoder, by calling
+		SetEscapeHTML(false).
+	*/
+	raw, _ := json.Marshal(string(data))
+
 	return json.Unmarshal(raw, v)
 }
 
